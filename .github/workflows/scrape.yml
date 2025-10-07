@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -26,11 +26,9 @@ jobs:
       - name: Install Chromium
         run: |
           sudo apt-get update
-          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium || sudo apt-get install -y google-chrome-stable
 
       - name: Run scraper
-        env:
-          CHROME_PATH: /usr/bin/chromium-browser
         run: |
           source .venv/bin/activate
           python scraper.py

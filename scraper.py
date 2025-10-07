@@ -4,20 +4,32 @@ import re
 import os
 
 async def get_title(url):
-    # Gunakan path Chrome eksplisit jika environment tidak otomatis
-    chrome_path = os.getenv("CHROME_PATH", "/usr/bin/chromium-browser")
+    # Coba beberapa path umum di GitHub Actions
+    chrome_candidates = [
+        "/usr/bin/chromium-browser",
+        "/usr/bin/chromium",
+        "/usr/bin/google-chrome",
+        "/snap/bin/chromium"
+    ]
+    chrome_path = next((p for p in chrome_candidates if os.path.exists(p)), None)
+
+    if not chrome_path:
+        raise RuntimeError("Chromium tidak ditemukan di sistem!")
+
+    print(f"✅ Menggunakan browser: {chrome_path}")
 
     browser = await nodriver.start(
+        browser_executable_path=chrome_path,
         no_sandbox=True,
         headless=True,
-        browser_executable_path=chrome_path
     )
 
     page = await browser.get(url)
     html = await page.get_content()
 
-    m = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
-    title = m.group(1).strip() if m else None
+    # Ambil <title>
+    m = re.search(r"<title>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
+    title = m.group(1).strip() if m else "Title tidak ditemukan"
 
     await page.close()
     browser.stop()
@@ -25,9 +37,9 @@ async def get_title(url):
     return title
 
 async def main():
-    url = 'https://www.nowsecure.nl'
+    url = "https://www.nowsecure.nl"
     title = await get_title(url)
-    print("Title halaman:", title)
+    print("🎯 Title halaman:", title)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())
