@@ -34,7 +34,7 @@ jobs:
       - name: Run scraper under Xvfb
         run: |
           source .venv/bin/activate
-          xvfb-run -a python scraper_playwright_fallback.py
+          xvfb-run -a python playwright.py
 
       - name: Upload result
         if: always()
