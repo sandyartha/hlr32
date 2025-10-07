@@ -1,1 +1,8 @@
+
+# nodriver is installed from the GitHub repo (required)
 git+https://github.com/ultrafunkamsterdam/nodriver.git
+
+# Optional: nicer HTML parsing if you later want to use BeautifulSoup
+beautifulsoup4>=4.12.2
+
+# Note: asyncio is part of the Python standard library and does NOT belong in requirements.txt
