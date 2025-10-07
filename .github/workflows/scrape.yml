@@ -3,41 +3,45 @@ name: Run Nodriver Scraper
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
+    branches:
+      - main
+      - master
 
 jobs:
   run-scraper:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 🧩 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Python
+      - name: 🐍 Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: ⚙️ Install dependencies
         run: |
           python -m venv .venv
           source .venv/bin/activate
           pip install --upgrade pip
-          pip install nodriver beautifulsoup4 requests
+          pip install nodriver requests beautifulsoup4
 
-      - name: Install Xvfb & Chromium
+      - name: 🧱 Install Xvfb and Chromium
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb chromium-browser
 
-      - name: Run scraper with Xvfb
+      - name: 🚀 Run scraper with Xvfb
         run: |
-          Xvfb :99 -screen 0 1920x1080x24 & 
+          source .venv/bin/activate
           xvfb-run -a python scraper.py
 
-      - name: Upload logs
+      - name: 📦 Upload result & logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: scraper-logs
-          path: .
+          name: scraper-output
+          path: |
+            result.txt
+            nodriver_cookies.json
