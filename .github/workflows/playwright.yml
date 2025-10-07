@@ -1,0 +1,44 @@
+name: Run Scraper (nodriver + playwright fallback)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Create venv & install deps
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install nodriver requests beautifulsoup4 playwright
+          # install chromium for playwright
+          python -m playwright install chromium
+
+      - name: Install Xvfb and system chromium (optional but helpful)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb chromium-browser
+
+      - name: Run scraper under Xvfb
+        run: |
+          source .venv/bin/activate
+          xvfb-run -a python scraper_playwright_fallback.py
+
+      - name: Upload result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraper-output
+          path: result.txt
