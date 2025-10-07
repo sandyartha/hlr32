@@ -1,15 +1,21 @@
 import asyncio
 import nodriver
 import re
+import os
 
 async def get_title(url):
-    # ✅ tambahkan no_sandbox=True agar bisa jalan di root
-    browser = await nodriver.start(no_sandbox=True, headless=True)
+    # Gunakan path Chrome eksplisit jika environment tidak otomatis
+    chrome_path = os.getenv("CHROME_PATH", "/usr/bin/chromium-browser")
+
+    browser = await nodriver.start(
+        no_sandbox=True,
+        headless=True,
+        browser_executable_path=chrome_path
+    )
 
     page = await browser.get(url)
     html = await page.get_content()
 
-    # cari tag <title>
     m = re.search(r'<title>(.*?)</title>', html, re.IGNORECASE | re.DOTALL)
     title = m.group(1).strip() if m else None
 
