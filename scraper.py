@@ -2,6 +2,7 @@ import asyncio
 import os
 import re
 import sys
+import traceback
 
 try:
     import nodriver
@@ -45,6 +46,18 @@ async def get_title(url: str) -> str | None:
 
             if headless_env:
                 opts['headless'] = True
+            if no_sandbox:
+                # nodriver specifically suggests a `no_sandbox` kwarg
+                opts['no_sandbox'] = True
+
+            # some versions may expect a different key for the chrome binary
+            if chrome_bin:
+                opts['executable_path'] = chrome_bin
+                opts['browser_executable'] = chrome_bin
+
+            print('Retrying nodriver.start with options:', opts)
+            print('Previous exception:')
+            print(traceback.format_exc())
 
             try:
                 return await nodriver.start(**opts)
