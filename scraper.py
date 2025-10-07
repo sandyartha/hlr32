@@ -1,73 +1,96 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+scraper.py
+Script universal untuk ambil <title> dari halaman web
+- Prioritas: nodriver (stealth browser)
+- Fallback: requests (browser-like headers)
+Aman digunakan di server/headless/root environments.
+"""
+
 import asyncio
-import nodriver
-import os
-import subprocess
+import nodriver as uc
 import requests
 from bs4 import BeautifulSoup
 
-# Deteksi jika environment tidak punya display (misal GitHub Actions)
-def ensure_xvfb():
-    if os.environ.get("DISPLAY") is None:
-        print("🧩 Tidak ada DISPLAY, memulai Xvfb...")
-        subprocess.Popen(["Xvfb", ":99", "-screen", "0", "1024x768x24"])
-        os.environ["DISPLAY"] = ":99"
-        print("✅ Xvfb aktif pada DISPLAY=:99")
+# ==========================================
+# Fungsi ambil title pakai nodriver
+# ==========================================
+async def get_title_nodriver(url: str):
+    print("🚀 Mencoba menggunakan nodriver...")
+    config = uc.Config()
+    config.headless = True
+    config.no_sandbox = True
+    config.browser_args = [
+        "--no-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-blink-features=AutomationControlled",
+        "--disable-gpu",
+    ]
+    config.lang = "en-US"
 
-async def get_title_with_nodriver(url: str):
     try:
-        print("🚀 Mencoba menggunakan nodriver...")
-
-        # pastikan Xvfb aktif bila perlu
-        ensure_xvfb()
-
-        browser = await nodriver.start(
-            no_sandbox=True,
-            headless=True,
-            disable_gpu=True,
-            disable_dev_shm_usage=True,
-            hide_scrollbars=True,
-            disable_infobars=True,
-        )
-
+        browser = await uc.start(config)
         page = await browser.get(url)
-        await page.wait_for_load_state("load")
+        await page.wait_loaded()
 
         title = await page.evaluate("document.title")
-        await browser.close()
+        print(f"🎯 Title ditemukan: {title}")
+
+        await browser.stop()
         return title
+
     except Exception as e:
-        print(f"❌ nodriver gagal: {e}")
+        print(f"❌ nodriver gagal:\n{e}")
         return None
 
-def get_title_with_requests(url: str):
+
+# ==========================================
+# Fallback: ambil title via requests + BeautifulSoup
+# ==========================================
+def get_title_requests(url: str):
     print("🌐 Fallback: menggunakan requests (browser-like headers)...")
+
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) "
-            "Chrome/123.0 Safari/537.36"
+            "Chrome/122.0 Safari/537.36"
         ),
         "Accept-Language": "en-US,en;q=0.9",
-        "Referer": "https://google.com",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
     }
+
     try:
-        res = requests.get(url, headers=headers, timeout=15)
-        res.raise_for_status()
-        soup = BeautifulSoup(res.text, "html.parser")
-        title_tag = soup.find("title")
-        return title_tag.text.strip() if title_tag else None
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        title = soup.title.string.strip() if soup.title else None
+        print(f"🎯 Title ditemukan via requests: {title}")
+        return title
     except Exception as e:
         print(f"❌ Gagal ambil title pakai requests: {e}")
         return None
 
+
+# ==========================================
+# Main logic
+# ==========================================
 async def main():
-    url = "https://www.nowsecure.nl/"
-    title = await get_title_with_nodriver(url)
+    url = "https://www.nowsecure.nl"
 
+    # 1️⃣ Coba pakai nodriver
+    title = await get_title_nodriver(url)
+
+    # 2️⃣ Fallback jika gagal
     if not title:
-        title = get_title_with_requests(url)
+        title = get_title_requests(url)
 
-    print(f"🎯 Hasil akhir: {title}")
+    print(f"🏁 Hasil akhir: {title}")
 
+
+# ==========================================
+# Entry point (tanpa asyncio.run untuk nodriver)
+# ==========================================
 if __name__ == "__main__":
-    asyncio.run(main())
+    uc.loop().run_until_complete(main())

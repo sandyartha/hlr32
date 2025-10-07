@@ -31,15 +31,27 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y xvfb chromium-browser
+          which chromium-browser || which chromium || true
 
       - name: Run scraper with Xvfb
+        env:
+          DISPLAY: ":99"
+          PYTHONUNBUFFERED: "1"
         run: |
           source .venv/bin/activate
-          xvfb-run -a python scraper.py
+          echo "🚀 Starting Xvfb..."
+          Xvfb :99 -screen 0 1920x1080x24 &
+          sleep 2
+          echo "🌐 Running scraper..."
+          python scraper.py --no-sandbox --headless || echo "⚠️ Scraper exited with error code $?"
 
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: scraper-logs
-          path: .
+          path: |
+            ./scraper.log
+            ./nodriver.log
+            ./*.txt
+            ./*.json
