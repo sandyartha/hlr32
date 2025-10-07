@@ -1,42 +1,36 @@
-name: Run scraper
+name: Scrape Title
 
 on:
-  workflow_dispatch: {}
-  schedule:
-    - cron: "0 6 * * *" # daily at 06:00 UTC (optional)
+  workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: 3.11
 
-      - name: Install system dependencies (Chromium + Xvfb)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y chromium-browser chromium-chromedriver xvfb
-
-      - name: Create venv and install Python deps
+      - name: Install dependencies
         run: |
           python -m venv .venv
-          . .venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          source .venv/bin/activate
+          pip install -U pip
+          pip install nodriver
 
-      - name: Run scraper under Xvfb
-        env:
-          # point nodriver / chromium to the installed binary
-          CHROME_BIN: /usr/bin/chromium-browser
-          NO_SANDBOX: "true"
-          XDG_RUNTIME_DIR: /tmp/runtime-root
+      - name: Install Chromium
         run: |
-          mkdir -p /tmp/runtime-root
-          . .venv/bin/activate
-          xvfb-run -a python scraper.py
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+
+      - name: Run scraper
+        env:
+          CHROME_PATH: /usr/bin/chromium-browser
+        run: |
+          source .venv/bin/activate
+          python scraper.py
