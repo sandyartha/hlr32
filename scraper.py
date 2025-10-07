@@ -1,6 +1,4 @@
 import asyncio
-import nodriver
-import asyncio
 import os
 import re
 import sys
@@ -17,7 +15,44 @@ async def get_title(url: str) -> str | None:
     This function uses the nodriver API and attempts to stop the browser
     cleanly whether stop() is a coroutine or regular function.
     """
-    browser = await nodriver.start()
+    async def _start_browser_with_fallback():
+        """Try to start nodriver normally; on failure retry with no-sandbox flags.
+
+        This helps running under CI where Chrome may require --no-sandbox.
+        """
+        try:
+            return await nodriver.start()
+        except Exception as e:
+            print("nodriver.start() failed, retrying with adjusted flags:", e)
+            # build fallback options
+            opts: dict = {}
+            chrome_bin = os.environ.get('CHROME_BIN')
+            if chrome_bin:
+                opts['executable_path'] = chrome_bin
+
+            # Respect environment variables to control sandboxing and headless mode
+            no_sandbox = os.environ.get('NO_SANDBOX') in ('1', 'true', 'True')
+            headless_env = os.environ.get('HEADLESS') in ('1', 'true', 'True')
+
+            args = []
+            if no_sandbox:
+                args += ['--no-sandbox', '--disable-setuid-sandbox']
+            # common flag to avoid /dev/shm issues in containers
+            args += ['--disable-dev-shm-usage']
+
+            if args:
+                opts['args'] = args
+
+            if headless_env:
+                opts['headless'] = True
+
+            try:
+                return await nodriver.start(**opts)
+            except Exception as e2:
+                print('Retry with adjusted flags also failed:', e2)
+                raise
+
+    browser = await _start_browser_with_fallback()
     page = await browser.get(url)
 
     html = None

@@ -34,6 +34,9 @@ jobs:
         env:
           # point nodriver / chromium to the installed binary
           CHROME_BIN: /usr/bin/chromium-browser
+          NO_SANDBOX: "true"
+          XDG_RUNTIME_DIR: /tmp/runtime-root
         run: |
+          mkdir -p /tmp/runtime-root
           . .venv/bin/activate
           xvfb-run -a python scraper.py
